@@ -528,7 +528,13 @@ with a comma) and sub-directories may be included as well by adding the -Recurse
 parameter to the launching command. The removal of files in Remove-DuplicateFiles
 is always done on 'per directory' -basis, so for example if a file exists twice in
 Folder A and also once in Folder B, only the second instance of the file in Folder A
-would be deleted.
+would be deleted. The files of a folder are analysed with the inbuilt Get-FileHash 
+cmdlet in machines that have PowerShell version 4 or later installed, and in 
+machines that are running PowerShell version 2 or 3 the .NET Framework commands 
+(and a function called Check-FileHash, which is based on Lee Holmes' Get-FileHash 
+script in "Windows PowerShell Cookbook (O'Reilly)" (http://www.leeholmes.com/guide))
+are invoked for determining whether or not any duplicate files exist in a 
+particular folder.
 
 If deletions are made, a log-file (deleted_files.txt by default) is created to
 $env:temp, which points to the current temporary file location and is set in the
@@ -567,8 +573,8 @@ folders to be processed is toggled with the -Recurse parameter.
 Please note that the removal of files in Remove-DuplicateFiles is always done on
 'per directory' -basis, so for example if a file exists twice in Folder A and also
 once in Folder B, only the second instance of the file in Folder A would be deleted.
-To make Remove-DuplicateFiles analyse all items in every specified directory may be
-one of the key areas of further development in Remove-DuplicateFiles.
+To make Remove-DuplicateFiles analyse all items in every specified directory in one
+go may be one of the key areas of further development in Remove-DuplicateFiles.
 
 .PARAMETER Output
 with an alias -ReportPath. Specifies where the log-file (deleted_files.txt by
@@ -604,7 +610,7 @@ run.
 If the -Recurse parameter is not used, the only folders that are processed are those
 which have been defined with the -Path parameter, and due to the inherent nature of
 Remove-DuplicateFiles, where each folder is regarded as an separate entity, the
-contents of different folders are not combined nor compared with each other .
+contents of different folders are not combined nor compared with each other.
 
 .PARAMETER Audio
 If this parameter is used in the remove duplicate files command, an audible beep
@@ -683,10 +689,10 @@ and "C:\dc01" separately (i.e. those duplicate files, which would be listed with
 the log-file to C:\Scripts with the default filename (deleted_files.txt). The word
 -Path and the quotation marks can be omitted in this example, too. Please note that
 due to the inherent nature of Remove-DuplicateFiles, if a file exists in "E:\chiore"
-and also in "C:\dc01" (the other instance is a duplicate file by definition),
-neither of the occurrances would be deleted by Remove-DuplicateFiles, since it
-treats each individual folder as its own separate entity and only removes duplicate
-files within an one folder realm.
+and also in "C:\dc01" (i.e. the other instance is a duplicate file), neither of the 
+occurrences would be deleted by Remove-DuplicateFiles, since it treats each 
+individual folder as its own separate entity and only removes duplicate files within
+an one folder realm.
 
 .EXAMPLE
 ./Remove-DuplicateFiles -Path "C:\Users\Dropbox" -Recurse
@@ -695,7 +701,7 @@ Will delete all duplicate files from C:\Users\Dropbox and will add all
 sub-directories of the sub-directories of the sub-directories and their
 sub-directories as well to the list of folders to process (the search for folders to
 process is done recursively). Looks for duplicate files in each of the found folders
-separately and deletes all multiple occurrances of a file within one folder (so if a
+separately and deletes all multiple occurrences of a file within one folder (so if a
 file exists twice in Folder A and also once in Folder B, only the second instance of
 the file in Folder A would be deleted).
 
@@ -715,7 +721,7 @@ is the exact same command in nature.
 
 Run the script and delete all duplicate files found in C:\dc01 and in every
 subfolder under C:\dc01. The duplicate files are searched in each folder separately
-and multiple occurrances of a file are deleted only within one folder (so if a file
+and multiple occurrences of a file are deleted only within one folder (so if a file
 exists twice in Folder A and also once in Folder B, only the second instance of the
 file in Folder A would be deleted).
 
@@ -785,7 +791,6 @@ https://msdn.microsoft.com/en-us/library/system.security.cryptography.ripemd160(
 https://msdn.microsoft.com/en-us/library/system.security.cryptography(v=vs.110).aspx
 https://msdn.microsoft.com/en-us/library/system.io.path_methods(v=vs.110).aspx
 http://go.microsoft.com/fwlink/?LinkID=113418
-http://stackoverflow.com/questions/5466329/whats-the-best-way-to-determine-the-location-of-the-current-powershell-script?noredirect=1&lq=1
 http://stackoverflow.com/questions/21252824/how-do-i-get-powershell-4-cmdlets-such-as-test-netconnection-to-work-on-windows
 http://windowsitpro.com/scripting/calculate-md5-and-sha1-file-hashes-using-powershell
 https://gist.github.com/quentinproust/8d3bd11562a12446644f
