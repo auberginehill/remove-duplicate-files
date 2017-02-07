@@ -311,7 +311,7 @@ Process {
         # Source: http://go.microsoft.com/fwlink/?LinkID=113418
         If ((Test-Path $folder -PathType Container) -eq $false) {
 
-            # Skip the item ($folder) if it is not a file (return to top of the program loop (ForEach $folder)
+            # Skip the item ($folder) if it is not a folder (return to top of the program loop (ForEach $folder)
             Continue
 
         } Else {
@@ -382,7 +382,7 @@ End {
                 If (($invalid_path_was_found) -ne $true) {
                     $enumeration_went_succesfully = $true
                     $empty_line | Out-String
-                    $stats_text = "Total $($unique_folders.Count) $item_text processed at $($folders -join ', ')"
+                    $stats_text = "Total $($unique_folders.Count) $item_text processed at $($unique_folders -join ', ')"
                 } Else {
                     $enumeration_went_succesfully = $false
 
