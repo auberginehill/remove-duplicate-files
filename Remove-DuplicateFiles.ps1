@@ -25,6 +25,9 @@ Param (
     [Alias("File")]
     [string]$FileName = "deleted_files.txt",
     [switch]$Recurse,
+    [Alias("Combine","Compare")]
+    [switch]$Global,
+    [switch]$WhatIf,
     [switch]$Audio
 )
 
@@ -42,10 +45,12 @@ Begin {
     $folders = @()
     $results = @()
     $skipped = @()
+    $all_folders = @()
     $duplicate_files = @()
     $skipped_path_names = @()
     $number_of_paths = $Path.Count
-    $number_of_duplicate_files = 0
+    $num_invalid_paths = 0
+
 
 
     # A function to calculate hash values in PowerShell versions 2 and 3
@@ -140,7 +145,7 @@ Begin {
         $empty_line | Out-String
         Write-Verbose "Please consider checking that the Output ('ReportPath') location '$Output', where the resulting text file is ought to be written, was typed correctly and that it is a valid file system path, which points to a directory. If the path name includes space characters, please enclose the path name in quotation marks (single or double)." -verbose
         $empty_line | Out-String
-        $skip_text = "Couldn't find -Output folder '$Output'..."
+        $skip_text = "Couldn't find -Output folder '$Output'."
         Write-Output $skip_text
         $empty_line | Out-String
         Exit
@@ -174,9 +179,9 @@ Begin {
                 $empty_line | Out-String
                 Write-Warning "'$path_candidate' doesn't seem to be a valid path name."
                 $empty_line | Out-String
-                Write-Verbose "Please consider checking that the starting point location (the '-Path' variable value of) '$path_candidate' was typed correctly and that it is a valid file system path, which points to a directory. If the path name includes space characters, please enclose the path name in quotation marks (single or double)." -verbose
+                Write-Verbose "Please consider checking that the '-Path' variable value of '$path_candidate' was typed correctly and that it is a valid file system path, which points to a directory. If the path name includes space characters, please enclose the path name in quotation marks (single or double)." -verbose
                 $empty_line | Out-String
-                $skip_text = "Skipping '$path_candidate' from the results."
+                $skip_text = "Skipping '$path_candidate' from the folders to be processed."
                 Write-Output $skip_text
 
                     # Add the invalid path as an object (with properties) to a collection of skipped paths
@@ -225,7 +230,7 @@ Begin {
                                         $real_path = (Resolve-Path $directory).Path
                                         $folders += $real_path
                                     } # ForEach $directory
-                                } # else (if $available_folders.Count)
+                                } # Else (If $available_folders)
 
                         If ($unavailable_folders -eq $null) {
                             $continue = $true
@@ -250,15 +255,14 @@ Begin {
                                     } # New-Object
 
                                 # Add the invalid path name to a list of failed path names
-                                $skipped_path_names += $path_candidate
+                                $skipped_path_names += $item
                             } # ForEach $item
-                        } # else (if $unavailable_folders.Count)
+                        } # Else (If $unavailable_folders)
                 } Else {
                     $continue = $true
                 } # Else (If $Recurse)
             } # Else (If Test-Path $path_candidate)
         } # ForEach $path_candidate
-
     } Else {
         # Take the files that are piped into the script
         $folders += @($input | ForEach-Object { $_.FullName })
@@ -306,42 +310,70 @@ Process {
     # Source: http://poshcode.org/2154
     # Credit: Lee Holmes: "Windows PowerShell Cookbook (O'Reilly)" (Get-FileHash script) http://www.leeholmes.com/guide
     $unique_folders = $folders | select -Unique
-    ForEach ($folder in $unique_folders) {
 
-        # Source: http://go.microsoft.com/fwlink/?LinkID=113418
-        If ((Test-Path $folder -PathType Container) -eq $false) {
+    ForEach ($folder_candidate in $unique_folders) {
+            # Source: http://go.microsoft.com/fwlink/?LinkID=113418
+            If ((Test-Path $folder_candidate -PathType Container) -eq $false) {
+                # Skip the item ($folder_candidate) if it is not a folder (return to top of the program loop (ForEach $folder_candidate)
+                Continue
+            } Else {
+                $all_folders += $folder_candidate
+            } # Else (If Test-Path $folder_candidate)
+    } # ForEach ($folder_candidate)
 
-            # Skip the item ($folder) if it is not a folder (return to top of the program loop (ForEach $folder)
-            Continue
 
-        } Else {
+    If ($Global) {
 
-                # Find the duplicate files (including the original file)
+            # Find the duplicate files (including the original file) in one go from all the eligible folders
+            If (($PSVersionTable.PSVersion).Major -ge 4) {
+                # Requires PowerShell version 4.0
+                # Source: https://gist.github.com/quentinproust/8d3bd11562a12446644f
+                # Source: https://msdn.microsoft.com/en-us/powershell/reference/5.1/microsoft.powershell.utility/get-filehash
+                $list = dir $all_folders -Force | Get-FileHash -Algorithm SHA256 -ErrorAction SilentlyContinue | Group-Object -Property Hash | Where-Object {( $_.Count -gt 1 )}
+            } Else {
+                # Requires PowerShell version 2 (and .NET Framework v3.5)
+                # Credit: Lee Holmes: "Windows PowerShell Cookbook (O'Reilly)" (Get-FileHash script) http://www.leeholmes.com/guide
+                $list = dir $all_folders -Force | Check-FileHash -Algorithm SHA256 | Group-Object -Property Hash | Where-Object {( $_.Count -gt 1 )}
+            } # Else (If $PSVersionTable.PSVersion)
+
+            # Enumerate the duplicate entities (excluding the original file)
+            If ($list.Count -gt 1) {
+                $duplicate_files += $list | ForEach-Object { $_ | select -ExpandProperty Group | select -ExpandProperty Path | select -Last ($_.Count -1) }
+            } Else {
+                $continue = $true
+            } # Else (If $list.Count)
+
+    } Else {
+
+            ForEach ($folder in $all_folders) {
+
+                # Find the duplicate files (including the original file) on 'per folder' basis
                 If (($PSVersionTable.PSVersion).Major -ge 4) {
                     # Requires PowerShell version 4.0
                     # Source: https://gist.github.com/quentinproust/8d3bd11562a12446644f
                     # Source: https://msdn.microsoft.com/en-us/powershell/reference/5.1/microsoft.powershell.utility/get-filehash
-                    $list = dir "$folder" -Force | Get-FileHash -Algorithm SHA256 | Group-Object -Property Hash | Where-Object {( $_.Count -gt 1 )}
+                    $list = dir "$folder" -Force | Get-FileHash -Algorithm SHA256 -ErrorAction SilentlyContinue | Group-Object -Property Hash | Where-Object {( $_.Count -gt 1 )}
                 } Else {
                     # Requires PowerShell version 2 (and .NET Framework v3.5)
                     # Credit: Lee Holmes: "Windows PowerShell Cookbook (O'Reilly)" (Get-FileHash script) http://www.leeholmes.com/guide
                     $list = dir "$folder" -Force | Check-FileHash -Algorithm SHA256 | Group-Object -Property Hash | Where-Object {( $_.Count -gt 1 )}
-                } # else (If $PSVersionTable.PSVersion)
-
+                } # Else (If $PSVersionTable.PSVersion)
 
                 # Enumerate the duplicate entities (excluding the original file)
                 If ($list.Count -gt 1) {
-                    $duplicate_files += $list | ForEach-Object { $_ | select -ExpandProperty Group | select -ExpandProperty Path | select -First ($_.Count -1) }
-                    $number_of_duplicate_files += $duplicate_files.Count
+                    $duplicate_files += $list | ForEach-Object { $_ | select -ExpandProperty Group | select -ExpandProperty Path | select -Last ($_.Count -1) }
                 } Else {
                     $continue = $true
-                } # else (If $list.Count)
-        } # Else (Test-Path $folder)
-    } # ForEach ($folder)
+                } # Else (If $list.Count)
+
+            } # ForEach ($folder)
+    } # Else (If $Global)
+
 
                     # Process each file
                     # Source: https://msdn.microsoft.com/en-us/library/system.io.path_methods(v=vs.110).aspx
-                    ForEach ($file in $duplicate_files) {
+                    $unique_files = $duplicate_files | select -Unique
+                    ForEach ($file in $unique_files) {
 
                         $filename = ([System.IO.Path]::GetFileName($file))
                         $dir_path = ([System.IO.Path]::GetFullPath($file))
@@ -366,7 +398,7 @@ Process {
                                                                     Get-FileHash $file -Algorithm SHA256 | Select-Object -ExpandProperty Hash
                                                                 } Else {
                                                                     Check-FileHash $file -Algorithm SHA256 | Select-Object -ExpandProperty Hash
-                                                                } # else (If $PSVersionTable.PSVersion)
+                                                                } # Else (If $PSVersionTable.PSVersion)
                                     } # New-Object
                     } # ForEach ($file)
 } # Process
@@ -375,70 +407,90 @@ Process {
 
 
 End {
+                # Do the background work for natural language
+                If ($unique_folders.Count -gt 1) { $item_text = "folders" } Else { $item_text = "folder" }
+                $empty_line | Out-String
 
-            # Do the background work for natural language
-            If ($unique_folders.Count -gt 1) { $item_text = "paths" } Else { $item_text = "path" }
+                    # Write the operational stats in console
+                    If (($invalid_path_was_found) -ne $true) {
+                        $enumeration_went_succesfully = $true
+                                If ($all_folders.Count -le 4) {
+                                    $stats_text = "Total $($unique_folders.Count) $item_text processed at $($all_folders -join ', ')."
+                                } Else {
+                                    $stats_text = "Total $($unique_folders.Count) $item_text processed."
+                                } # Else (If $all_folders.Count)
+                        Write-Output $stats_text
+                    } Else {
 
-                If (($invalid_path_was_found) -ne $true) {
-                    $enumeration_went_succesfully = $true
-                    $empty_line | Out-String
-                    $stats_text = "Total $($unique_folders.Count) $item_text processed at $($unique_folders -join ', ')"
-                } Else {
-                    $enumeration_went_succesfully = $false
-
-                    # Display the skipped path names in console
-                    $empty_line | Out-String
-                    $skipped.PSObject.TypeNames.Insert(0,"Skipped Path Names")
-                    $skipped_selection = $skipped | Select-Object 'Skipped Paths','Size','Error' | Sort-Object 'Skipped Paths'
-                    $skipped_selection | Format-Table -auto
-
-                            If ($num_invalid_paths -gt 1) {
-                                $stats_text = "Total $($unique_folders.Count) $item_text processed. There were $num_invalid_paths skipped paths."
-                            } Else {
-                                $stats_text = "Total $($unique_folders.Count) $item_text processed. One path was skipped."
-                            } # Else
-
-                } # Else (If $invalid_path_was_found)
+                        # Display the skipped path names and write the operational stats in console
+                        $enumeration_went_succesfully = $false
+                        $skipped.PSObject.TypeNames.Insert(0,"Skipped Path Names")
+                        $skipped_selection = $skipped | Select-Object 'Skipped Paths','Size','Error' | Sort-Object 'Skipped Paths'
+                        $skipped_selection | Format-Table -auto
+                                If ($num_invalid_paths -gt 1) {
+                                    If ($all_folders.Count -eq 0) {
+                                        $stats_text = "There were $num_invalid_paths skipped paths. Didn't process any folders."
+                                    } ElseIf ($all_folders.Count -le 4) {
+                                        $stats_text = "Total $($unique_folders.Count) $item_text processed at $($all_folders -join ', '). There were $num_invalid_paths skipped paths."
+                                    } Else {
+                                        $stats_text = "Total $($unique_folders.Count) $item_text processed. There were $num_invalid_paths skipped paths."
+                                    } # Else (If $all_folders.Count)
+                                } Else {
+                                    If ($all_folders.Count -eq 0) {
+                                        $stats_text = "One path name was skipped. Didn't process any folders."
+                                    } ElseIf ($all_folders.Count -le 4) {
+                                        $stats_text = "Total $($unique_folders.Count) $item_text processed at $($all_folders -join ', '). One path name was skipped."
+                                    } Else {
+                                        $stats_text = "Total $($unique_folders.Count) $item_text processed. One path name was skipped."
+                                    } # Else (If $all_folders.Count)
+                                } # Else (If $num_invalid_paths)
+                        Write-Output $stats_text
+                    } # Else (If $invalid_path_was_found)
 
 
     If ($results.Count -ge 1) {
 
-        # Write the operational stats in console
-        Write-Output $stats_text
-        $empty_line | Out-String
-
 
         # Remove the duplicate files
-        Remove-Item $duplicate_files -Force
+        $empty_line | Out-String
+        $deleted_files = $results | Select-Object -ExpandProperty 'Full Path'
+        Remove-Item $deleted_files -Force -WhatIf:$WhatIf
 
 
         # Test if the files were removed
         If ((Test-Path $duplicate_files) -eq $true) {
-            "Exit Code 1: Something went wrong with the deletion procedure."
-            Return $empty_line
+                        If ($WhatIf) {
+                            $empty_line | Out-String
+                            "Exit Code 1: A simulation run (the -WhatIf parameter was used), didn't touch any files."
+                            Return $empty_line
+                        } Else {
+                            "Exit Code 2: Something went wrong with the deletion procedure."
+                            Return $empty_line
+                        } # Else (If $WhatIf)
         } Else {
-                    # Write the header in console
-                    $duplicate_files.PSObject.TypeNames.Insert(0,"Duplicate Files")
-                    $results.PSObject.TypeNames.Insert(0,"Duplicate Files")
-                    $results_selection = $results | select "File","Full Path","SHA256"
-
-                            If ($number_of_duplicate_files -gt 1) {
-                                $header = "Duplicate files that were deleted"
-                                $coline = "---------------------------------"
-                                Write-Output $header
-                                $coline | Out-String
-                            } ElseIf ($number_of_duplicate_files -eq 1) {
-                                $header = "The following duplicate file was deleted"
-                                $coline = "----------------------------------------"
-                                Write-Output $header
-                                $coline | Out-String
-                            } Else {
-                                    $continue = $true
-                            } # else (If $number_of_duplicate_files -gt 1)
+                # Write the header in console
+                $deleted_files.PSObject.TypeNames.Insert(0,"Duplicate Files")
+                $results.PSObject.TypeNames.Insert(0,"Duplicate Files")
+                $results_selection = $results | select "File","Full Path","SHA256"
+                        If ($deleted_files.Count -gt 1) {
+                            $header = "Duplicate files that were deleted"
+                            $coline = "---------------------------------"
+                            Write-Output $header
+                            $coline | Out-String
+                            $written_data = $unique_files
+                        } ElseIf ($deleted_files.Count -eq 1) {
+                            $header = "The following duplicate file was deleted"
+                            $coline = "----------------------------------------"
+                            Write-Output $header
+                            $coline | Out-String
+                            $written_data = $unique_files.ToString()
+                        } Else {
+                                $continue = $true
+                        } # Else (If $deleted_files.Count -gt 1)
 
 
                 # Write the results in console
-                Write-Output $duplicate_files
+                Write-Output $written_data
                 Write-Output $results_selection | Format-List
 
 
@@ -450,17 +502,14 @@ End {
                             ($results_selection | Format-List) | Out-File "$txt_file" -Encoding UTF8 -Force
                             $results_list = Get-Content $txt_file
                             $empty_line  | Out-File "$txt_file" -Encoding UTF8 -Force
-                            Add-Content -Path "$txt_file" -Value $header_txt -Encoding UTF8
-                            Add-Content -Path "$txt_file" -Value $separator -Encoding UTF8
-                            Add-Content -Path "$txt_file" -Value $empty_line -Encoding UTF8
-                            Add-Content -Path "$txt_file" -Value $empty_line -Encoding UTF8
-                            Add-Content -Path "$txt_file" -Value $duplicate_files -Encoding UTF8
+                            Add-Content -Path "$txt_file" -Value "$header_txt`r`n$separator`r`n$empty_line`r`n$empty_line" -Encoding UTF8
+                            Add-Content -Path "$txt_file" -Value $written_data -Encoding UTF8
                             Add-Content -Path "$txt_file" -Value $results_list -Encoding UTF8
                             Add-Content -Path "$txt_file" -Value "Date: $(Get-Date -Format g)"
                         } Else {
                             $results_list = ($results_selection | Format-List)
                             $pre_existing_content = Get-Content $txt_file
-                            ($pre_existing_content + $empty_line + $empty_line + $separator + $empty_line + $empty_line + $duplicate_files + $results_list) | Out-File "$txt_file" -Encoding UTF8 -Force
+                            ($pre_existing_content + $empty_line + $empty_line + $separator + $empty_line + $empty_line + $written_data + $results_list) | Out-File "$txt_file" -Encoding UTF8 -Force
                             Add-Content -Path "$txt_file" -Value "Date: $(Get-Date -Format g)"
                         } # Else (If Test-Path $txt_file)
 
@@ -469,18 +518,18 @@ End {
                         $continue = $true
                 } Else {
                         [char]7
-                } # else
-
+                } # Else
         } # Else (If Test-Path $duplicate_files)
-
     } Else {
-
-        $exit_text = "No duplicate files were detected in $($folders -join ', ')"
-        Write-Output $exit_text
-        $empty_line | Out-String
-
+        If ($all_folders.Count -ge 1) {
+            $empty_line | Out-String
+            $exit_text = "Didn't detect any duplicate files."
+            Write-Output $exit_text
+            $empty_line | Out-String
+        } Else {
+            $empty_line | Out-String
+        } # Else (If $all_folders.Count)
     } # Else (If $results.Count)
-
 } # End
 
 
@@ -523,18 +572,26 @@ Removes duplicate files within a specified directory or directories.
 
 .DESCRIPTION
 Remove-DuplicateFiles searches for duplicate files from a directory specified with
-the -Path parameter. Multiple paths may be entered to the -Path parameter (separated
-with a comma) and sub-directories may be included as well by adding the -Recurse
-parameter to the launching command. The removal of files in Remove-DuplicateFiles
-is always done on 'per directory' -basis, so for example if a file exists twice in
-Folder A and also once in Folder B, only the second instance of the file in Folder A
-would be deleted. The files of a folder are analysed with the inbuilt Get-FileHash 
-cmdlet in machines that have PowerShell version 4 or later installed, and in 
-machines that are running PowerShell version 2 or 3 the .NET Framework commands 
-(and a function called Check-FileHash, which is based on Lee Holmes' Get-FileHash 
-script in "Windows PowerShell Cookbook (O'Reilly)" (http://www.leeholmes.com/guide))
-are invoked for determining whether or not any duplicate files exist in a 
-particular folder.
+the -Path parameter. The files of a folder are analysed with the inbuilt
+Get-FileHash cmdlet in machines that have PowerShell version 4 or later installed,
+and in machines that are running PowerShell version 2 or 3 the .NET Framework
+commands (and a function called Check-FileHash, which is based on Lee Holmes'
+Get-FileHash script in "Windows PowerShell Cookbook (O'Reilly)"
+(http://www.leeholmes.com/guide)) are invoked for determining whether or not any
+duplicate files exist in a particular folder.
+
+Multiple paths may be entered to the -Path parameter (separated with a comma) and
+sub-directories may be included to the list of folders to process by adding the
+-Recurse parameter to the launching command. By default the removal of files in
+Remove-DuplicateFiles is done on 'per directory' -basis, where each individual
+folder is treated as its own separate entity, and the duplicate files are searched
+and removed within one particular folder realm at a time, so for example if a file
+exists twice in Folder A and also once in Folder B, only the second instance of the
+file in Folder A would be deleted by Remove-DuplicateFiles by default. To make
+Remove-DuplicateFiles delete also the duplicate file that is in Folder B (in the
+previous example), a parameter called -Global may be added to the launching command,
+which makes Remove-DuplicateFiles behave more holistically and analyse all the items
+in every found directory in one go and compare each found file with each other.
 
 If deletions are made, a log-file (deleted_files.txt by default) is created to
 $env:temp, which points to the current temporary file location and is set in the
@@ -546,11 +603,13 @@ Remove-DuplicateFiles tries to preserve any pre-existing content rather than
 overwrite the specified file, so if the -FileName parameter points to an existing
 file, new log-info data is appended to the end of that file.
 
-If the -Audio parameter has been used, an audible beep will be emitted after
-Remove-DuplicateFiles has deleted one or more files. Please note that if any of
-the parameter values (after the parameter name itself) includes space characters,
-the value should be enclosed in quotation marks (single or double) so that
-PowerShell can interpret the command correctly.
+To invoke a simulation run, where no files would be deleted in any circumstances,
+a parameter -WhatIf may be added to the launching command. If the -Audio parameter
+has been used, an audible beep would be emitted after Remove-DuplicateFiles has
+deleted one or more files. Please note that if any of the parameter values (after
+the parameter name itself) includes space characters, the value should be enclosed
+in quotation marks (single or double) so that PowerShell can interpret the command
+correctly.
 
 .PARAMETER Path
 with aliases -Start, -Begin, -Folder, and -From. The -Path parameter determines the
@@ -568,13 +627,9 @@ the individual path names with a comma. The -Path parameter also takes an array 
 strings for paths and objects could be piped to this parameter, too. If no path is
 defined in the command launching Remove-DuplicateFiles the user will be prompted to
 enter a -Path value. Whether or not the subdirectories are added to the list of
-folders to be processed is toggled with the -Recurse parameter.
-
-Please note that the removal of files in Remove-DuplicateFiles is always done on
-'per directory' -basis, so for example if a file exists twice in Folder A and also
-once in Folder B, only the second instance of the file in Folder A would be deleted.
-To make Remove-DuplicateFiles analyse all items in every specified directory in one
-go may be one of the key areas of further development in Remove-DuplicateFiles.
+folders to be processed is toggled with the -Recurse parameter. Furthermore, the
+parameter -Global toggles whether the contents of found folders are compared
+with each other or not.
 
 .PARAMETER Output
 with an alias -ReportPath. Specifies where the log-file (deleted_files.txt by
@@ -600,21 +655,52 @@ or double).
 If the -Recurse parameter is added to the command launching Remove-DuplicateFiles,
 also each and every sub-folder in any level, no matter how deep in the directory
 structure or behind how many sub-folders, is added to the list of folders to be
-processed by Remove-DuplicateFiles. Since the removal of files in
-Remove-DuplicateFiles is always done on 'per directory' -basis and because the
-contents of different folders are not compared with each other, those duplicate
-files, which exist alone in their own folder will be preserved (and as per default
-one instance of a file in each folder) even after Remove-DuplicateFiles has been
-run.
+processed by Remove-DuplicateFiles. If the -Recurse parameter is not used, the only
+folders that are processed are those which have been defined with the -Path
+parameter.
 
-If the -Recurse parameter is not used, the only folders that are processed are those
-which have been defined with the -Path parameter, and due to the inherent nature of
-Remove-DuplicateFiles, where each folder is regarded as an separate entity, the
-contents of different folders are not combined nor compared with each other.
+.PARAMETER Global
+with aliases -Combine and -Compare. If the -Global parameter is added to the command
+launching Remove-DuplicateFiles, the contents of different folders are combined and
+compared with each other, so for example if a file exists twice in Folder A and also
+once in Folder B, the second instance in folder A and the file in Folder B would be
+deleted by Remove-DuplicateFiles (only one instance of a file would be universally
+kept). Before trying to remove any files from multiple locations with the -Global
+parameter in Remove-DuplicateFiles, it is recommended to use both the -WhatIf
+parameter and the -Global parameter in the command launching Remove-DuplicateFiles
+in order to make sure, that the correct original file in the correct directory
+would be left untouched by Remove-DuplicateFiles.
+
+If the -Global parameter is not used, the removal of files is done on 'per
+directory' -basis and the contents of different folders are not compared with each
+other, so those duplicate files, which exist alone in their own folder will be
+preserved (as per default one instance of a file in each folder) even after
+Remove-DuplicateFiles has been run (each folder is regarded as an separate entity
+or realm).
+
+.PARAMETER WhatIf
+The parameter -WhatIf toggles whether the deletion of files is actually done or not.
+By adding the -WhatIf parameter to the launching command only a simulation run is
+performed. When the -WhatIf parameter is added to the command launching
+Remove-DuplicateFiles, a -WhatIf parameter is also added to the underlying
+Remove-Item cmdlet that is deleting the files in Remove-DuplicateFiles. In such
+case and if duplicate file(s) was/were detected by Remove-DuplicateFiles, a list of
+files that would be deleted by Remove-DuplicateFiles is displayed in console
+("What if:"). Since no real deletions were be made, the script will return an
+"Exit Code 1" (A simulation run: the -WhatIf parameter was used).
+
+In case there were no duplicate files to begin with, the result is the same,
+whether the -WhatIf parameter was used or not. Before trying to remove any files
+from multiple locations with the -Global parameter in Remove-DuplicateFiles, it is
+recommended to use both the -WhatIf parameter and the -Global parameter in the
+command launching Remove-DuplicateFiles in order to make sure, that the correct
+original file in the correct directory would be left untouched by
+Remove-DuplicateFiles.
 
 .PARAMETER Audio
 If this parameter is used in the remove duplicate files command, an audible beep
-will occur, if any deletions are made by Remove-DuplicateFiles.
+will occur, if any deletions are made by Remove-DuplicateFiles (and if the system
+is not set to mute).
 
 .OUTPUTS
 Deletes duplicate files in a folder.
@@ -654,7 +740,7 @@ http://www.eightforums.com/tutorials/23500-temporary-files-folder-change-locatio
 
     Homepage:           https://github.com/auberginehill/remove-duplicate-files
     Short URL:          http://tinyurl.com/jv4jlbe
-    Version:            1.0
+    Version:            1.1
 
 .EXAMPLE
 ./Remove-DuplicateFiles -Path "E:\chiore"
@@ -681,55 +767,57 @@ help ./Remove-DuplicateFiles -Full
 Display the help file.
 
 .EXAMPLE
-./Remove-DuplicateFiles -Path "E:\chiore", "C:\dc01" -Output "C:\Scripts"
+./Remove-DuplicateFiles -Path "E:\chiore", "C:\dc01" -Output "C:\Scripts" -Global
 
 Run the script and remove all duplicate files from the first level of "E:\chiore"
-and "C:\dc01" separately (i.e. those duplicate files, which would be listed with the
-"dir E:\chiore" or "dir E:\dc01" command), and if any deletions are made, save
-the log-file to C:\Scripts with the default filename (deleted_files.txt). The word
--Path and the quotation marks can be omitted in this example, too. Please note that
-due to the inherent nature of Remove-DuplicateFiles, if a file exists in "E:\chiore"
-and also in "C:\dc01" (i.e. the other instance is a duplicate file), neither of the 
-occurrences would be deleted by Remove-DuplicateFiles, since it treats each 
-individual folder as its own separate entity and only removes duplicate files within
-an one folder realm.
+and "C:\dc01" (i.e. those duplicate files, which would be listed by combining the
+results of "dir E:\chiore" and "dir E:\dc01" commands), and if any deletions are
+made, save the log-file to C:\Scripts with the default filename (deleted_files.txt).
+If a file exists in "E:\chiore" and also in "C:\dc01" (i.e. the other instance is a
+duplicate file), one instance would be preserved and the other would be deleted by
+Remove-DuplicateFiles. The word -Path and the quotation marks could be omitted in
+this example, too.
 
 .EXAMPLE
-./Remove-DuplicateFiles -Path "C:\Users\Dropbox" -Recurse
+./Remove-DuplicateFiles -Path "C:\Users\Dropbox" -Recurse -WhatIf
 
-Will delete all duplicate files from C:\Users\Dropbox and will add all
-sub-directories of the sub-directories of the sub-directories and their
-sub-directories as well to the list of folders to process (the search for folders to
-process is done recursively). Looks for duplicate files in each of the found folders
-separately and deletes all multiple occurrences of a file within one folder (so if a
-file exists twice in Folder A and also once in Folder B, only the second instance of
-the file in Folder A would be deleted).
+Because the -WhatIf parameter was used, only a simulation run occurs, so no files
+would be deleted in any circumstances. The script will look for duplicate files from
+C:\Users\Dropbox and will add all sub-directories of the sub-directories of the
+sub-directories and their sub-directories as well to the list of folders to process
+(the search for other folders to process is done recursively). Each of the found
+folders is searched separately (or individually) for duplicate files (so if a file
+exists twice in Folder A and also once in Folder B, only the second instance of the
+file in Folder A would be added to list of files to be deleted).
 
-If any deletions were made, the log-file is saved to the default location
-($env:temp) with the default filename (deleted_files.txt). The Path variable value
-is case-insensitive (as is most of the PowerShell), and since the path name doesn't
-contain any space characters, it doesn't need to be enveloped with quotation marks.
-Actually the -Path parameter may be left out from the command, too, since, for
-example,
+If duplicate files aren't found (when looked at every folder separately and the
+contents of each folder are not compared with each other, since the -Global
+parameter was not used), the result would be identical regardless whether the
+-WhatIf parameter was used or not. If, however, duplicate files were indeed found,
+only an indication of what the script would delete ("What if:") is displayed.
 
-    ./Remove-DuplicateFiles c:\users\dROPBOx -Recurse
+The Path variable value is case-insensitive (as is most of the PowerShell), and
+since the path name doesn't contain any space characters, it doesn't need to be
+enveloped with quotation marks. Actually the -Path parameter may be left out from
+the command, too, since, for example,
+
+    ./Remove-DuplicateFiles c:\users\dROPBOx -Recurse -WhatIf
 
 is the exact same command in nature.
 
 .EXAMPLE
-.\Remove-DuplicateFiles.ps1 -From C:\dc01 -ReportPath C:\Scripts -File log.txt -Recurse -Audio
+.\Remove-DuplicateFiles.ps1 -From C:\dc01 -ReportPath C:\Scripts -File log.txt -Recurse -Combine -Audio
 
-Run the script and delete all duplicate files found in C:\dc01 and in every
-subfolder under C:\dc01. The duplicate files are searched in each folder separately
-and multiple occurrences of a file are deleted only within one folder (so if a file
-exists twice in Folder A and also once in Folder B, only the second instance of the
-file in Folder A would be deleted).
+Run the script and delete all the duplicate files found in C:\dc01 and in every
+subfolder under C:\dc01 combined. The duplicate files are searched in one go from
+all the found folders and the contents of all folders are compared with each other.
 
 If any deletions were made, the log-file would be saved to C:\Scripts with the
 filename log.txt and an audible beep would occur. This command will work, because
--From is an alias of -Path and -ReportPath is an alias of -Output and -File is an
-alias of -FileName. Furthermore, since the path names don't contain any space
-characters, they don't need to be enclosed in quotation marks.
+-From is an alias of -Path and -ReportPath is an alias of -Output, -File is an
+alias of -FileName and -Combine is an alias of -Glogal. Furthermore, since the path
+names or the file neame don't contain any space characters, they don't need to be
+enclosed in quotation marks.
 
 .EXAMPLE
 Set-ExecutionPolicy remotesigned
