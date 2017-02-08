@@ -815,7 +815,7 @@ all the found folders and the contents of all folders are compared with each oth
 If any deletions were made, the log-file would be saved to C:\Scripts with the
 filename log.txt and an audible beep would occur. This command will work, because
 -From is an alias of -Path and -ReportPath is an alias of -Output, -File is an
-alias of -FileName and -Combine is an alias of -Glogal. Furthermore, since the path
+alias of -FileName and -Combine is an alias of -Global. Furthermore, since the path
 names or the file name don't contain any space characters, they don't need to be
 enclosed in quotation marks.
 
