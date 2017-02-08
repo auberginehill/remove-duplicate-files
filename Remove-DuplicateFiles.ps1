@@ -686,7 +686,7 @@ Remove-DuplicateFiles, a -WhatIf parameter is also added to the underlying
 Remove-Item cmdlet that is deleting the files in Remove-DuplicateFiles. In such
 case and if duplicate file(s) was/were detected by Remove-DuplicateFiles, a list of
 files that would be deleted by Remove-DuplicateFiles is displayed in console
-("What if:"). Since no real deletions were be made, the script will return an
+("What if:"). Since no real deletions aren't made, the script will return an
 "Exit Code 1" (A simulation run: the -WhatIf parameter was used).
 
 In case there were no duplicate files to begin with, the result is the same,
@@ -703,7 +703,7 @@ will occur, if any deletions are made by Remove-DuplicateFiles (and if the syste
 is not set to mute).
 
 .OUTPUTS
-Deletes duplicate files in a folder.
+Deletes duplicate files in one or multiple folders.
 Displays results about deleting duplicate files in console, and if any deletions
 were made, writes or updates a logfile (deleted_files.txt) at $env:temp. The
 filename of the log-file can be set with the -FileName parameter (a filename with a
@@ -816,7 +816,7 @@ If any deletions were made, the log-file would be saved to C:\Scripts with the
 filename log.txt and an audible beep would occur. This command will work, because
 -From is an alias of -Path and -ReportPath is an alias of -Output, -File is an
 alias of -FileName and -Combine is an alias of -Glogal. Furthermore, since the path
-names or the file neame don't contain any space characters, they don't need to be
+names or the file name don't contain any space characters, they don't need to be
 enclosed in quotation marks.
 
 .EXAMPLE
