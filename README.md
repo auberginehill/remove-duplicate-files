@@ -32,11 +32,13 @@
    </tr>
    <tr>
       <td style="padding:6px"><strong>Description:</strong></td>
-      <td style="padding:6px">Remove-DuplicateFiles searches for duplicate files from a directory specified with the <code>-Path</code> parameter. Multiple paths may be entered to the <code>-Path</code> parameter (separated with a comma) and sub-directories may be included as well by adding the <code>-Recurse</code> parameter to the launching command. The removal of files in Remove-DuplicateFiles is always done on 'per directory' -basis, so for example if a file exists twice in Folder A and also once in Folder B, only the second instance of the file in Folder A would be deleted. The files of a folder are analysed with the inbuilt <code>Get-FileHash</code> cmdlet in machines that have PowerShell version 4 or later installed, and in machines that are running PowerShell version 2 or 3 the .NET Framework commands (and a function called <dfn>Check-FileHash</dfn>, which is based on <strong>Lee Holmes</strong>' <dfn>Get-FileHash</dfn> <a href="http://poshcode.org/2154">script</a> in "<a href="http://www.leeholmes.com/guide">Windows PowerShell Cookbook (O'Reilly)</a>") are invoked for determining whether or not any duplicate files exist in a particular folder.
+      <td style="padding:6px">Remove-DuplicateFiles searches for duplicate files from a directory specified with the <code>-Path</code> parameter. The files of a folder are analysed with the inbuilt <code>Get-FileHash</code> cmdlet in machines that have PowerShell version 4 or later installed, and in machines that are running PowerShell version 2 or 3 the .NET Framework commands (and a function called <dfn>Check-FileHash</dfn>, which is based on <strong>Lee Holmes</strong>' <dfn>Get-FileHash</dfn> <a href="http://poshcode.org/2154">script</a> in "<a href="http://www.leeholmes.com/guide">Windows PowerShell Cookbook (O'Reilly)</a>") are invoked for determining whether or not any duplicate files exist in a particular folder.
+      <br />
+      <br />Multiple paths may be entered to the <code>-Path</code> parameter (separated with a comma) and sub-directories may be included to the list of folders to process by adding the <code>-Recurse</code> parameter to the launching command. By default the removal of files in Remove-DuplicateFiles is done on 'per directory' -basis, where each individual folder is treated as its own separate entity, and the duplicate files are searched and removed within one particular folder realm at a time, so for example if a file exists twice in Folder A and also once in Folder B, only the second instance of the file in Folder A would be deleted by Remove-DuplicateFiles by default. To make Remove-DuplicateFiles delete also the duplicate file that is in Folder B (in the previous example), a parameter called <code>-Global</code> may be added to the launching command, which makes Remove-DuplicateFiles behave more holistically and analyse all the items in every found directory in one go and compare each found file with each other.
       <br />
       <br />If deletions are made, a log-file (<code>deleted_files.txt</code> by default) is created to <code>$env:temp</code>, which points to the current temporary file location and is set in the system (– for more information about <code>$env:temp</code>, please see the Notes section). The filename of the log-file can be set with the <code>-FileName</code> parameter (a filename with a <code>.txt</code> ending is recommended) and the default output destination folder may be changed with the <code>-Output</code> parameter. During the possibly invoked log-file creation procedure Remove-DuplicateFiles tries to preserve any pre-existing content rather than overwrite the specified file, so if the <code>-FileName</code> parameter points to an existing file, new log-info data is appended to the end of that file.
       <br />
-      <br />If the <code>-Audio</code> parameter has been used, an audible beep will be emitted after Remove-DuplicateFiles has deleted one or more files. Please note that if any of the parameter values (after the parameter name itself) includes space characters, the value should be enclosed in quotation marks (single or double) so that PowerShell can interpret the command correctly.</td>
+      <br />To invoke a simulation run, where no files would be deleted in any circumstances, a parameter <code>-WhatIf</code> may be added to the launching command. If the <code>-Audio</code> parameter has been used, an audible beep would be emitted after Remove-DuplicateFiles has deleted one or more files. Please note that if any of the parameter values (after the parameter name itself) includes space characters, the value should be enclosed in quotation marks (single or double) so that PowerShell can interpret the command correctly.</td>
    </tr>
    <tr>
       <td style="padding:6px"><strong>Homepage:</strong></td>
@@ -45,7 +47,7 @@
    </tr>
    <tr>
       <td style="padding:6px"><strong>Version:</strong></td>
-      <td style="padding:6px">1.0</td>
+      <td style="padding:6px">1.1</td>
    </tr>
    <tr>
         <td style="padding:6px"><strong>Sources:</strong></td>
@@ -106,8 +108,7 @@
                 <li>
                     <h5>Parameter <code>-Path</code></h5>
                     <p>with aliases <code>-Start</code>, <code>-Begin</code>, <code>-Folder</code>, and <code>-From</code>. The <code>-Path</code> parameter determines the starting point of the duplicate file analysation. The <code>-Path</code> parameter also accepts a collection of path names (separated by a comma). It's not mandatory to write <code>-Path</code> in the remove duplicate files command to invoke the <code>-Path</code> parameter, as is shown in the Examples below, since Remove-DuplicateFiles is trying to decipher the inputted queries as good as it is machinely possible within a 50 KB size limit.</p>
-                    <p>The paths should be valid file system paths to a directory (a full path name of a directory (i.e. folder path such as <code>C:\Windows</code>)). In case the path name includes space characters, please enclose the path name in quotation marks (single or double). If a collection of path names is defined for the <code>-Path</code> parameter, please separate the individual path names with a comma. The <code>-Path</code> parameter also takes an array of strings for paths and objects could be piped to this parameter, too. If no path is defined in the command launching Remove-DuplicateFiles the user will be prompted to enter a <code>-Path</code> value. Whether or not the subdirectories are added to the list of folders to be processed is toggled with the <code>-Recurse</code> parameter.</p>
-                    <p>Please note that the removal of files in Remove-DuplicateFiles is always done on 'per directory' -basis, so for example if a file exists twice in Folder A and also once in Folder B, only the second instance of the file in Folder A would be deleted. To make Remove-DuplicateFiles analyse all items in every specified directory in one go may be one of the key areas of further development in Remove-DuplicateFiles.</p>
+                    <p>The paths should be valid file system paths to a directory (a full path name of a directory (i.e. folder path such as <code>C:\Windows</code>)). In case the path name includes space characters, please enclose the path name in quotation marks (single or double). If a collection of path names is defined for the <code>-Path</code> parameter, please separate the individual path names with a comma. The <code>-Path</code> parameter also takes an array of strings for paths and objects could be piped to this parameter, too. If no path is defined in the command launching Remove-DuplicateFiles the user will be prompted to enter a <code>-Path</code> value. Whether or not the subdirectories are added to the list of folders to be processed is toggled with the <code>-Recurse</code> parameter. Furthermore, the parameter <code>-Global</code> toggles whether the contents of found folders are compared with each other or not.</p>
                 </li>
             </ul>
         </td>
@@ -131,14 +132,27 @@
                 <p>
                     <li>
                         <h5>Parameter <code>-Recurse</code></h5>
-                        <p>If the <code>-Recurse</code> parameter is added to the command launching Remove-DuplicateFiles, also each and every sub-folder in any level, no matter how deep in the directory structure or behind how many sub-folders, is added to the list of folders to be processed by Remove-DuplicateFiles. Since the removal of files in Remove-DuplicateFiles is always done on 'per directory' -basis and because the contents of different folders are not compared with each other, those duplicate files, which exist alone in their own folder will be preserved (and as per default one instance of a file in each folder) even after Remove-DuplicateFiles has been run.</p>
-                        <p>If the <code>-Recurse</code> parameter is not used, the only folders that are processed are those which have been defined with the <code>-Path</code> parameter, and due to the inherent nature of Remove-DuplicateFiles, where each folder is regarded as an separate entity, the contents of different folders are not combined nor compared with each other.</p>
+                        <p>If the <code>-Recurse</code> parameter is added to the command launching Remove-DuplicateFiles, also each and every sub-folder in any level, no matter how deep in the directory structure or behind how many sub-folders, is added to the list of folders to be processed by Remove-DuplicateFiles. If the <code>-Recurse</code> parameter is not used, the only folders that are processed are those which have been defined with the <code>-Path</code> parameter.</p>
+                    </li>
+                </p>
+                <p>
+                    <li>
+                        <h5>Parameter <code>-Global</code></h5>
+                        <p>with aliases <code>-Combine</code> and <code>-Compare</code>. If the <code>-Global</code> parameter is added to the command launching Remove-DuplicateFiles, the contents of different folders are combined and compared with each other, so for example if a file exists twice in Folder A and also once in Folder B, the second instance in folder A and the file in Folder B would be deleted by Remove-DuplicateFiles (only one instance of a file would be universally kept). Before trying to remove files from multiple locations with the <code>-Global</code> parameter in Remove-DuplicateFiles, it is recommended to use both the <code>-WhatIf</code> parameter and the <code>-Global</code> parameter in the command launching Remove-DuplicateFiles in order to make sure, that the correct original file in the correct directory would be left untouched by Remove-DuplicateFiles.</p>
+                        <p>If the <code>-Global</code> parameter is not used, the removal of files is done on 'per directory' -basis and the contents of different folders are not compared with each other, so those duplicate files, which exist alone in their own folder will be preserved (as per default one instance of a file in each folder) even after Remove-DuplicateFiles has been run (each folder is regarded as an separate entity or realm).</p>
+                    </li>
+                </p>
+                <p>
+                    <li>
+                        <h5>Parameter <code>-WhatIf</code></h5>
+                        <p>The parameter <code>-WhatIf</code> toggles whether the deletion of files is actually done or not. By adding the <code>-WhatIf</code> parameter to the launching command only a simulation run is performed. When the <code>-WhatIf</code> parameter is added to the command launching Remove-DuplicateFiles, a <code>-WhatIf</code> parameter is also added to the underlying <code>Remove-Item</code> cmdlet that is deleting the files in Remove-DuplicateFiles. In such case and if duplicate file(s) was/were detected by Remove-DuplicateFiles, a list of files that would be deleted by Remove-DuplicateFiles is displayed in console ("What if:"). Since no real deletions were be made, the script will return an "Exit Code 1" (A simulation run: the <code>-WhatIf</code> parameter was used).</p>
+                        <p>In case there were no duplicate files to begin with, the result is the same, whether the <code>-WhatIf</code> parameter was used or not. Before trying to remove files from multiple locations with the <code>-Global</code> parameter in Remove-DuplicateFiles, it is recommended to use both the <code>-WhatIf</code> parameter and the <code>-Global</code> parameter in the command launching Remove-DuplicateFiles in order to make sure, that the correct original file in the correct directory would be left untouched by Remove-DuplicateFiles.</p>
                     </li>
                 </p>
                 <p>
                     <li>
                         <h5>Parameter <code>-Audio</code></h5>
-                        <p>If this parameter is used in the remove duplicate files command, an audible beep will occur, if any deletions are made by Remove-DuplicateFiles.</p>
+                        <p>If this parameter is used in the remove duplicate files command, an audible beep will occur, if any deletions are made by Remove-DuplicateFiles (and if the system is not set to mute).</p>
                     </li>
                 </p>
             </ul>
@@ -214,7 +228,7 @@
                     <br />
                     <br /><code>[System.IO.Path]::GetTempPath()</code>
                     <br />
-                    <br />may be used at the PowerShell prompt window <code>[PS>]</code>. To change the temp folder for instance to <code>C:\Temp</code>, please, for example, follow the instructions at <a href="http://www.eightforums.com/tutorials/23500-temporary-files-folder-change-location-windows.html">Temporary Files Folder - Change Location in Windows</a>, which in essence are something along the lines:
+                    <br />may be used at the PowerShell prompt window <code>[PS&gt;]</code>. To change the temp folder for instance to <code>C:\Temp</code>, please, for example, follow the instructions at <a href="http://www.eightforums.com/tutorials/23500-temporary-files-folder-change-location-windows.html">Temporary Files Folder - Change Location in Windows</a>, which in essence are something along the lines:
                         <ol>
                            <li>Right click on Computer and click on Properties (or select Start → Control Panel → System). In the resulting window with the basic information about the computer...</li>
                            <li>Click on Advanced system settings on the left panel and select Advanced tab on the resulting pop-up window.</li>
@@ -228,7 +242,6 @@
         </td>
     </tr>
 </table>
-
 
 
 
@@ -257,24 +270,26 @@
                     Display the help file.</li>
                 </p>
                 <p>
-                    <li><code>./Remove-DuplicateFiles -Path "E:\chiore", "C:\dc01" -Output "C:\Scripts"</code><br />
-                    Run the script and remove all duplicate files from the first level of "<code>E:\chiore</code>" and "<code>C:\dc01</code>" separately (i.e. those duplicate files, which would be listed with the "<code>dir E:\chiore</code>" or "<code>dir E:\dc01</code>" command), and if any deletions are made, save the log-file to <code>C:\Scripts</code> with the default filename (<code>deleted_files.txt</code>). The word -Path and the quotation marks can be omitted in this example, too. Please note that due to the inherent nature of Remove-DuplicateFiles, if a file exists in "<code>E:\chiore</code>" and also in "<code>C:\dc01</code>" (i.e. the other instance is a duplicate file), neither of the occurrences would be deleted by Remove-DuplicateFiles, since it treats each individual folder as its own separate entity and only removes duplicate files within an one folder realm.</li>
+                    <li><code>./Remove-DuplicateFiles -Path "E:\chiore", "C:\dc01" -Output "C:\Scripts" -Global</code><br />
+                    Run the script and remove all duplicate files from the first level of "<code>E:\chiore</code>" and "<code>C:\dc01</code>" (i.e. those duplicate files, which would be listed by combining the results of "<code>dir E:\chiore</code>" and "<code>dir E:\dc01</code>" commands), and if any deletions are made, save the log-file to <code>C:\Scripts</code> with the default filename (<code>deleted_files.txt</code>). If a file exists in "<code>E:\chiore</code>" and also in "<code>C:\dc01</code>" (i.e. the other instance is a duplicate file), one instance would be preserved and the other would be deleted by Remove-DuplicateFiles. The word -Path and the quotation marks could be omitted in this example, too. </li>
                 </p>
                 <p>
-                    <li><code>./Remove-DuplicateFiles -Path "C:\Users\Dropbox" -Recurse</code><br />
-                    Will delete all duplicate files from <code>C:\Users\Dropbox</code> and will add all sub-directories of the sub-directories of the sub-directories and their sub-directories as well to the list of folders to process (the search for folders to process is done recursively). Looks for duplicate files in each of the found folders separately and deletes all multiple occurrences of a file within one folder (so if a file exists twice in Folder A and also once in Folder B, only the second instance of the file in Folder A would be deleted).
+                    <li><code>./Remove-DuplicateFiles -Path "C:\Users\Dropbox" -Recurse -WhatIf</code><br />
+                    Because the <code>-WhatIf</code> parameter was used, only a simulation run occurs, so no files would be deleted in any circumstances. The script will look for duplicate files from <code>C:\Users\Dropbox</code> and will add all sub-directories of the sub-directories of the sub-directories and their sub-directories as well to the list of folders to process (the search for other folders to process is done recursively). Each of the found folders is searched separately (or individually) for duplicate files (so if a file exists twice in Folder A and also once in Folder B, only the second instance of the file in Folder A would be added to list of files to be deleted).
                     <br />
-                    <br />If any deletions were made, the log-file is saved to the default location (<code>$env:temp</code>) with the default filename (<code>deleted_files.txt</code>). The Path variable value is case-insensitive (as is most of the PowerShell), and since the path name doesn't contain any space characters, it doesn't need to be enveloped with quotation marks. Actually the <code>-Path</code> parameter may be left out from the command, too, since, for example,
+                    <br />If duplicate files aren't found (when looked at every folder separately and the contents of each folder are not compared with each other, since the <code>-Global</code> parameter was not used), the result would be identical regardless whether the <code>-WhatIf</code> parameter was used or not. If, however, duplicate files were indeed found, only an indication of what the script would delete ("What if:") is displayed.
                     <br />
-                    <br /><code>./Remove-DuplicateFiles c:\users\dROPBOx -Recurse</code>
+                    <br />The Path variable value is case-insensitive (as is most of the PowerShell), and since the path name doesn't contain any space characters, it doesn't need to be enveloped with quotation marks. Actually the <code>-Path</code> parameter may be left out from the command, too, since, for example,
+                    <br />
+                    <br /><code>./Remove-DuplicateFiles c:\users\dROPBOx -Recurse -WhatIf</code>
                     <br />
                     <br />is the exact same command in nature.</li>
                 </p>
                 <p>
-                    <li><code>.\Remove-DuplicateFiles.ps1 -From C:\dc01 -ReportPath C:\Scripts -File log.txt -Recurse -Audio</code><br />
-                    Run the script and delete all duplicate files found in <code>C:\dc01</code> and in every subfolder under <code>C:\dc01</code>. The duplicate files are searched in each folder separately and multiple occurrences of a file are deleted only within one folder (so if a file exists twice in Folder A and also once in Folder B, only the second instance of the file in Folder A would be deleted).
+                    <li><code>.\Remove-DuplicateFiles.ps1 -From C:\dc01 -ReportPath C:\Scripts -File log.txt -Recurse -Combine -Audio</code><br />
+                    Run the script and delete all the duplicate files found in <code>C:\dc01</code> and in every subfolder under <code>C:\dc01</code> combined. The duplicate files are searched in one go from all the found folders and the contents of all folders are compared with each other.
                     <br />
-                    <br />If any deletions were made, the log-file would be saved to <code>C:\Scripts</code> with the filename <code>log.txt</code> and an audible beep would occur. This command will work, because <code>-From</code> is an alias of <code>-Path</code> and <code>-ReportPath</code> is an alias of <code>-Output</code> and <code>-File</code> is an alias of <code>-FileName</code>. Furthermore, since the path names don't contain any space characters, they don't need to be enclosed in quotation marks.</li>
+                    <br />If any deletions were made, the log-file would be saved to <code>C:\Scripts</code> with the filename <code>log.txt</code> and an audible beep would occur. This command will work, because <code>-From</code> is an alias of <code>-Path</code> and <code>-ReportPath</code> is an alias of <code>-Output</code>, <code>-File</code> is an alias of <code>-FileName</code> and <code>-Combine</code> is an alias of <code>-Glogal</code>. Furthermore, since the path names don't contain any space characters, they don't need to be enclosed in quotation marks.</li>
                 </p>
                 <p>
                     <li><p><code>Set-ExecutionPolicy remotesigned</code><br />
@@ -366,7 +381,6 @@
     <tr>
         <td style="padding:6px">Mike F Robbins: <a href="http://mikefrobbins.com/2015/03/31/powershell-advanced-functions-can-we-build-them-better-with-parameter-validation-yes-we-can/">PowerShell Advanced Functions: Can we build them better?</a></td>
     </tr>
-
     <tr>
         <td style="padding:6px">Lee Holmes: <a href="http://www.leeholmes.com/guide">Windows PowerShell Cookbook (O'Reilly)</a>: Get-FileHash <a href="http://poshcode.org/2154">script</a></td>
     </tr>
@@ -423,7 +437,7 @@
     </tr>
     <tr>
         <td style="padding:6px"><a href="http://poshcode.org/2154">Get-FileHash.ps1</a></td>
-    </tr> 
+    </tr>
     <tr>
         <td style="padding:6px">ASCII Art: <a href="http://www.figlet.org/">http://www.figlet.org/</a> and <a href="http://www.network-science.de/ascii/">ASCII Art Text Generator</a></td>
     </tr>
@@ -493,7 +507,7 @@
     </tr>
     <tr>
         <td style="padding:6px"><a href="https://github.com/auberginehill/remove-empty-folders">Remove-EmptyFolders</a></td>
-    </tr>    
+    </tr>
     <tr>
         <td style="padding:6px"><a href="https://gist.github.com/auberginehill/13bb9f56dc0882bf5e85a8f88ccd4610">Remove-EmptyFoldersLite</a></td>
     </tr>
