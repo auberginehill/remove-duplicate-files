@@ -145,7 +145,7 @@
                 <p>
                     <li>
                         <h5>Parameter <code>-WhatIf</code></h5>
-                        <p>The parameter <code>-WhatIf</code> toggles whether the deletion of files is actually done or not. By adding the <code>-WhatIf</code> parameter to the launching command only a simulation run is performed. When the <code>-WhatIf</code> parameter is added to the command launching Remove-DuplicateFiles, a <code>-WhatIf</code> parameter is also added to the underlying <code>Remove-Item</code> cmdlet that is deleting the files in Remove-DuplicateFiles. In such case and if duplicate file(s) was/were detected by Remove-DuplicateFiles, a list of files that would be deleted by Remove-DuplicateFiles is displayed in console ("What if:"). Since no real deletions were be made, the script will return an "Exit Code 1" (A simulation run: the <code>-WhatIf</code> parameter was used).</p>
+                        <p>The parameter <code>-WhatIf</code> toggles whether the deletion of files is actually done or not. By adding the <code>-WhatIf</code> parameter to the launching command only a simulation run is performed. When the <code>-WhatIf</code> parameter is added to the command launching Remove-DuplicateFiles, a <code>-WhatIf</code> parameter is also added to the underlying <code>Remove-Item</code> cmdlet that is deleting the files in Remove-DuplicateFiles. In such case and if duplicate file(s) was/were detected by Remove-DuplicateFiles, a list of files that would be deleted by Remove-DuplicateFiles is displayed in console ("What if:"). Since no real deletions aren't made, the script will return an "Exit Code 1" (A simulation run: the <code>-WhatIf</code> parameter was used).</p>
                         <p>In case there were no duplicate files to begin with, the result is the same, whether the <code>-WhatIf</code> parameter was used or not. Before trying to remove files from multiple locations with the <code>-Global</code> parameter in Remove-DuplicateFiles, it is recommended to use both the <code>-WhatIf</code> parameter and the <code>-Global</code> parameter in the command launching Remove-DuplicateFiles in order to make sure, that the correct original file in the correct directory would be left untouched by Remove-DuplicateFiles.</p>
                     </li>
                 </p>
@@ -170,7 +170,7 @@
         <th>:arrow_right:</th>
         <td style="padding:6px">
             <ul>
-                <li>Deletes duplicate files in a folder.</li>
+                <li>Deletes duplicate files in one or multiple folders.</li>
             </ul>
         </td>
     </tr>
@@ -289,7 +289,7 @@
                     <li><code>.\Remove-DuplicateFiles.ps1 -From C:\dc01 -ReportPath C:\Scripts -File log.txt -Recurse -Combine -Audio</code><br />
                     Run the script and delete all the duplicate files found in <code>C:\dc01</code> and in every subfolder under <code>C:\dc01</code> combined. The duplicate files are searched in one go from all the found folders and the contents of all folders are compared with each other.
                     <br />
-                    <br />If any deletions were made, the log-file would be saved to <code>C:\Scripts</code> with the filename <code>log.txt</code> and an audible beep would occur. This command will work, because <code>-From</code> is an alias of <code>-Path</code> and <code>-ReportPath</code> is an alias of <code>-Output</code>, <code>-File</code> is an alias of <code>-FileName</code> and <code>-Combine</code> is an alias of <code>-Glogal</code>. Furthermore, since the path names don't contain any space characters, they don't need to be enclosed in quotation marks.</li>
+                    <br />If any deletions were made, the log-file would be saved to <code>C:\Scripts</code> with the filename <code>log.txt</code> and an audible beep would occur. This command will work, because <code>-From</code> is an alias of <code>-Path</code> and <code>-ReportPath</code> is an alias of <code>-Output</code>, <code>-File</code> is an alias of <code>-FileName</code> and <code>-Combine</code> is an alias of <code>-Glogal</code>. Furthermore, since the path names or the file name don't contain any space characters, they don't need to be enclosed in quotation marks.</li>
                 </p>
                 <p>
                     <li><p><code>Set-ExecutionPolicy remotesigned</code><br />
