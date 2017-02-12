@@ -128,7 +128,7 @@ Begin {
                                     'Algorithm'                     = $Algorithm;
                                     'Hash'                          = $hash
                             } # New-Object
-                } # Else (Test-Path $file)
+                } # Else (If Test-Path $file)
             $output
         } # ForEach ($file)
     } # function
@@ -409,6 +409,7 @@ Process {
 End {
                 # Do the background work for natural language
                 If ($unique_folders.Count -gt 1) { $item_text = "folders" } Else { $item_text = "folder" }
+                If ($results.Count -gt 1) { $file_text = "files" } Else { $file_text = "file" }
                 $empty_line | Out-String
 
                     # Write the operational stats in console
@@ -457,9 +458,12 @@ End {
         Remove-Item $deleted_files -Force -WhatIf:$WhatIf
 
 
-        # Test if the files were removed
+        # Test if the files were removed        
         If ((Test-Path $duplicate_files) -eq $true) {
                         If ($WhatIf) {
+                            $empty_line | Out-String
+                            $notify_text = "Found $($deleted_files.Count) duplicate $file_text."                            
+                            Write-Output $notify_text
                             $empty_line | Out-String
                             "Exit Code 1: A simulation run (the -WhatIf parameter was used), didn't touch any files."
                             Return $empty_line
@@ -490,8 +494,11 @@ End {
 
 
                 # Write the results in console
+                $notify_text = "Deleted $($deleted_files.Count) duplicate $file_text."                            
                 Write-Output $written_data
                 Write-Output $results_selection | Format-List
+                Write-Output $notify_text
+                $empty_line | Out-String
 
 
                 # Write info about the removed duplicate files to a text file (located at the current temp-folder or the location is defined with the -Output parameter)
@@ -513,12 +520,13 @@ End {
                             Add-Content -Path "$txt_file" -Value "Date: $(Get-Date -Format g)"
                         } # Else (If Test-Path $txt_file)
 
-                # Sound the bell if set to do so with the -Audio parameter (ASCII character 7)
+                # Sound the bell if set to do so with the -Audio parameter
+                # Source: https://blogs.technet.microsoft.com/heyscriptingguy/2013/09/21/powertip-use-powershell-to-send-beep-to-console/
                 If ( -not $Audio ) {
                         $continue = $true
                 } Else {
-                        [char]7
-                } # Else
+                        [console]::beep(2000,830)
+                } # Else (If -not $Audio)
         } # Else (If Test-Path $duplicate_files)
     } Else {
         If ($all_folders.Count -ge 1) {
@@ -768,7 +776,6 @@ Display the help file.
 
 .EXAMPLE
 ./Remove-DuplicateFiles -Path "E:\chiore", "C:\dc01" -Output "C:\Scripts" -Global
-
 Run the script and remove all duplicate files from the first level of "E:\chiore"
 and "C:\dc01" (i.e. those duplicate files, which would be listed by combining the
 results of "dir E:\chiore" and "dir E:\dc01" commands), and if any deletions are
@@ -780,7 +787,6 @@ this example, too.
 
 .EXAMPLE
 ./Remove-DuplicateFiles -Path "C:\Users\Dropbox" -Recurse -WhatIf
-
 Because the -WhatIf parameter was used, only a simulation run occurs, so no files
 would be deleted in any circumstances. The script will look for duplicate files from
 C:\Users\Dropbox and will add all sub-directories of the sub-directories of the
@@ -807,7 +813,6 @@ is the exact same command in nature.
 
 .EXAMPLE
 .\Remove-DuplicateFiles.ps1 -From C:\dc01 -ReportPath C:\Scripts -File log.txt -Recurse -Combine -Audio
-
 Run the script and delete all the duplicate files found in C:\dc01 and in every
 subfolder under C:\dc01 combined. The duplicate files are searched in one go from
 all the found folders and the contents of all folders are compared with each other.
@@ -872,6 +877,7 @@ http://www.leeholmes.com/guide
 http://stackoverflow.com/questions/8711564/unable-to-read-an-open-file-with-binary-reader
 https://community.spiceworks.com/scripts/show/2263-get-the-sha1-sha256-sha384-sha512-md5-or-ripemd160-hash-of-a-file
 https://msdn.microsoft.com/en-us/library/system.security.cryptography.sha256cryptoserviceprovider(v=vs.110).aspx
+https://blogs.technet.microsoft.com/heyscriptingguy/2013/09/21/powertip-use-powershell-to-send-beep-to-console/
 https://msdn.microsoft.com/en-us/library/system.security.cryptography.md5cryptoserviceprovider(v=vs.110).aspx
 https://msdn.microsoft.com/en-us/powershell/reference/5.1/microsoft.powershell.utility/get-filehash
 https://msdn.microsoft.com/en-us/library/system.security.cryptography.mactripledes(v=vs.110).aspx
