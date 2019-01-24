@@ -371,9 +371,8 @@ Process {
 
 
                     # Process each file
-                    # Source: https://msdn.microsoft.com/en-us/library/system.io.path_methods(v=vs.110).aspx
-                    $unique_files = $duplicate_files | select -Unique
-                    ForEach ($file in $unique_files) {
+                    # Source: https://msdn.microsoft.com/en-us/library/system.io.path_methods(v=vs.110).aspx                    
+                    ForEach ($file in $duplicate_files) {
 
                         $filename = ([System.IO.Path]::GetFileName($file))
                         $dir_path = ([System.IO.Path]::GetFullPath($file))
@@ -748,7 +747,7 @@ http://www.eightforums.com/tutorials/23500-temporary-files-folder-change-locatio
 
     Homepage:           https://github.com/auberginehill/remove-duplicate-files
     Short URL:          http://tinyurl.com/jv4jlbe
-    Version:            1.1
+    Version:            1.2
 
 .EXAMPLE
 ./Remove-DuplicateFiles -Path "E:\chiore"
