@@ -47,7 +47,7 @@
    </tr>
    <tr>
       <td style="padding:6px"><strong>Version:</strong></td>
-      <td style="padding:6px">1.1</td>
+      <td style="padding:6px">1.2</td>
    </tr>
    <tr>
         <td style="padding:6px"><strong>Sources:</strong></td>
